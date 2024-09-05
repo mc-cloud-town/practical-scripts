@@ -1,4 +1,5 @@
 import re
+import shutil
 from pathlib import Path
 from typing import Union
 
@@ -18,6 +19,30 @@ UUID_MATCH = re.compile(
     r"([0-9a-f]{8})(?:-|)([0-9a-f]{4})(?:-|)"
     r"(4[0-9a-f]{3})(?:-|)([89ab][0-9a-f]{3})(?:-|)([0-9a-f]{12})"
 )
+
+
+MEMBERS_TABLE = [
+    "-Zonzer",
+    "-Fallen_Monkey",
+    "-stevened7246",
+    "-The0ldSteve",
+    "-Poltergeist824",
+    "-BragMatthew",
+    "-Eveeeandpokemon",
+    "-Kahyxen",
+    "-Dr_Poti",
+    "-BragMatthew",
+    "-CoolNot",
+    "+sbans",
+    "+GriRet",
+]
+
+MEMBERS_MAP = {
+    "member": {
+        "-": {m[1:].strip() for m in MEMBERS_TABLE if m.startswith("-")},
+        "+": {m[1:].strip() for m in MEMBERS_TABLE if m.startswith("+")},
+    }
+}
 
 
 def summon_member_list(images: list[Path], output_path: Union[str, Path] = "out"):
@@ -64,21 +89,32 @@ def summon_member_list(images: list[Path], output_path: Union[str, Path] = "out"
 
 if __name__ == "__main__":
     data = requests.get("https://mc-ctec.org/static-data/member.json").json()
-    for type, members in data.items():
-        members.sort(key=lambda x: x["name"])
-        for member in members:
-            name = member["name"]
-            uuid = member["uuid"]
 
-            file = Path(f"./avatars/{type}/{name}.png")
-            if FORCE_DOWNLOAD or not file.is_file():
+    if FORCE_DOWNLOAD:
+        shutil.rmtree("avatars", ignore_errors=True)
+
+    for type, members in data.items():
+        members = [m["name"] for m in members]
+        if type in MEMBERS_MAP:
+            members_map = MEMBERS_MAP[type]
+
+            print(f"取得 {type} 成員名單")
+            members = list(filter(lambda x: x not in members_map["-"], members))
+            members.extend(list(members_map["+"]))
+
+        members.sort()
+        members = set[str](members)
+        data[type] = list(members)
+        for name in members:
+            file = Path(f"avatars/{type}/{name}.png")
+            if not file.is_file():
                 r = requests.get(f"https://mineskin.eu/helm/{name}")
                 if r.status_code == 200:
                     file.parent.mkdir(parents=True, exist_ok=True)
                     file.write_bytes(r.content)
                     print(f"取得 {type} {name} 頭像")
                 else:
-                    print("無法取該 Name 頭像: ", r.status_code)
+                    print(f"無法取該 {name} 頭像: {r.status_code}")
 
     for dir in Path("avatars").glob("*"):
         print(dir)
@@ -86,7 +122,7 @@ if __name__ == "__main__":
         if dir.name not in data:
             continue
 
-        remote_names = [m["name"] for m in data[dir.name]]
+        remote_names = data[dir.name]
         for image in images:
             if image.stem not in remote_names:
                 image.unlink()
