@@ -1,4 +1,3 @@
-import re
 import shutil
 from pathlib import Path
 from typing import Union
@@ -8,18 +7,13 @@ from PIL import Image, ImageDraw, ImageFont
 
 ROW_LEN = 2
 COLUMN_LEN = 8
+ALL_IN_ONE = False
 AVATAR_SIZE = 64
 FONT_SIZE = 20
 RIGHT_PADDING = 188
 BOTTOM_PADDING = 20
 
 FORCE_DOWNLOAD = False
-
-UUID_MATCH = re.compile(
-    r"([0-9a-f]{8})(?:-|)([0-9a-f]{4})(?:-|)"
-    r"(4[0-9a-f]{3})(?:-|)([89ab][0-9a-f]{3})(?:-|)([0-9a-f]{12})"
-)
-
 
 MEMBERS_TABLE = [
     "-Zonzer",
@@ -127,5 +121,8 @@ if __name__ == "__main__":
             if image.stem not in remote_names:
                 image.unlink()
                 images.remove(image)
+
+        if ALL_IN_ONE:
+            COLUMN_LEN = round(len(images) / ROW_LEN)
 
         summon_member_list(images, Path("out") / dir.name)
